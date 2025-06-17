@@ -1,6 +1,6 @@
 // speedtest.js
-const DOWNLOAD_SIZE = 5 * 1024 * 1024; // 5 MB
-const UPLOAD_SIZE   = 5 * 1024 * 1024; // 5 MB
+const DOWNLOAD_SIZE = 5 * 1024 * 1024;  // 5 MB
+const UPLOAD_SIZE   = 5 * 1024 * 1024;  // 5 MB
 
 async function measurePing() {
   const t0 = performance.now();
@@ -38,13 +38,12 @@ async function startTest() {
     const [p, d, u] = await Promise.all([
       measurePing(),
       measureDownload(),
-      measureUpload()
+      measureUpload()   // ← make sure this is here
     ]);
     document.getElementById('ping').innerText     = `Ping: ${p} ms`;
     document.getElementById('download').innerText = `Download: ${d} Mbps`;
     document.getElementById('upload').innerText   = `Upload: ${u} Mbps`;
-  } catch (err) {
-    console.error(err);
+  } catch {
     ['ping','download','upload'].forEach(id =>
       document.getElementById(id).innerText =
         `${id.charAt(0).toUpperCase()+id.slice(1)}: Failed`
