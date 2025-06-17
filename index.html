@@ -31,10 +31,13 @@
   </div>
 
   <script type="module">
-    const DOWNLOAD_SIZE   = 5 * 1024 * 1024;  // 5 MB
-    const CHUNK_SIZE      = 4 * 1024 * 1024;  // 4 MB per request
-    const UPLOAD_CHUNKS   = 2;                // 2 × 4 MB = 8 MB total
+    // CONFIG
+    const DOWNLOAD_SIZE   = 10 * 1024 * 1024;  // 10 MB for smoother download
+    const CHUNK_SIZE      = 4  * 1024 * 1024;  // 4 MB per upload request
+    const UPLOAD_CHUNKS   = 2;                 // total 8 MB upload
+    const AVG_RUNS        = 3;                 // average over 3 runs
 
+    // MEASUREMENT FUNCTIONS
     async function measurePing() {
       const t0 = performance.now();
       await fetch('/api/ping', { cache: 'no-store' });
@@ -63,17 +66,32 @@
       return (totalBits / (secs * 1024 * 1024)).toFixed(2);
     }
 
+    async function average(fn, runs) {
+      let sum = 0;
+      for (let i = 0; i < runs; i++) {
+        sum += parseFloat(await fn());
+      }
+      return (sum / runs).toFixed(2);
+    }
+
+    // RUN & DISPLAY
     async function startTest() {
       ['ping','download','upload'].forEach(id =>
         document.getElementById(id).innerText =
           `${id.charAt(0).toUpperCase()+id.slice(1)}: Testing…`
       );
       try {
+        // warm-up for more consistent timing
+        await measureDownload();
+        await measureUpload();
+
+        // actual measurements
         const [p, d, u] = await Promise.all([
           measurePing(),
-          measureDownload(),
-          measureUpload()
+          average(measureDownload, AVG_RUNS),
+          average(measureUpload,   AVG_RUNS)
         ]);
+
         document.getElementById('ping').innerText     = `Ping: ${p} ms`;
         document.getElementById('download').innerText = `Download: ${d} Mbps`;
         document.getElementById('upload').innerText   = `Upload: ${u} Mbps`;
