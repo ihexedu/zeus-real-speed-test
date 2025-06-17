@@ -31,8 +31,9 @@
   </div>
 
   <script type="module">
-    const DOWNLOAD_SIZE = 5 * 1024 * 1024;
-    const UPLOAD_SIZE   = 4 * 1024 * 1024;
+    const DOWNLOAD_SIZE   = 5 * 1024 * 1024;  // 5 MB
+    const CHUNK_SIZE      = 4 * 1024 * 1024;  // 4 MB per request
+    const UPLOAD_CHUNKS   = 2;                // 2 × 4 MB = 8 MB total
 
     async function measurePing() {
       const t0 = performance.now();
@@ -48,16 +49,18 @@
     }
 
     async function measureUpload() {
-      // zero-filled buffer instead of crypto.getRandomValues
-      const payload = new ArrayBuffer(UPLOAD_SIZE);
+      const payload = new ArrayBuffer(CHUNK_SIZE);
       const t0 = performance.now();
-      await fetch('/api/upload', {
-        method: 'POST',
-        body: payload,
-        cache: 'no-store'
-      });
+      for (let i = 0; i < UPLOAD_CHUNKS; i++) {
+        await fetch('/api/upload', {
+          method: 'POST',
+          body: payload,
+          cache: 'no-store'
+        });
+      }
       const secs = (performance.now() - t0) / 1000;
-      return ((UPLOAD_SIZE * 8) / (secs * 1024 * 1024)).toFixed(2);
+      const totalBits = CHUNK_SIZE * UPLOAD_CHUNKS * 8;
+      return (totalBits / (secs * 1024 * 1024)).toFixed(2);
     }
 
     async function startTest() {
