@@ -11,4 +11,4 @@ button {
   background:#000; color:#fff; cursor:pointer;
 }
 button:active { transform:scale(.98); }
-p, h1 { margin:.5rem 0; }
+p, h1 { margin:.5rem 0; } 
