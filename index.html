@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Zeus Speed Test</title>
   <style>
     body {
@@ -42,14 +42,14 @@
 
     async function measureDownload() {
       const t0 = performance.now();
-      await fetch('/api/download', { cache: 'no-store' }).then(r=>r.blob());
+      await fetch('/api/download', { cache: 'no-store' }).then(r => r.blob());
       const secs = (performance.now() - t0) / 1000;
       return ((DOWNLOAD_SIZE * 8) / (secs * 1024 * 1024)).toFixed(2);
     }
 
     async function measureUpload() {
-      const payload = new Uint8Array(UPLOAD_SIZE);
-      crypto.getRandomValues(payload);
+      // zero-filled buffer instead of crypto.getRandomValues
+      const payload = new ArrayBuffer(UPLOAD_SIZE);
       const t0 = performance.now();
       await fetch('/api/upload', {
         method: 'POST',
