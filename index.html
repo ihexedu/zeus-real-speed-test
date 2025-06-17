@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Zeus Speed Test</title>
+  <title>Zeus Speed Test (NDT7)</title>
   <style>
     body {
       font-family: "Times New Roman", serif;
@@ -31,79 +31,54 @@
   </div>
 
   <script type="module">
-    // CONFIG
-    const DOWNLOAD_SIZE   = 10 * 1024 * 1024;  // 10 MB for smoother download
-    const CHUNK_SIZE      = 4  * 1024 * 1024;  // 4 MB per upload request
-    const UPLOAD_CHUNKS   = 2;                 // total 8 MB upload
-    const AVG_RUNS        = 3;                 // average over 3 runs
+    // 1) import the NDT7 frontend
+    import { default as ndt7client } from 'https://cdn.jsdelivr.net/npm/ndt7-client-web@0.1.4/dist/ndt7-web.esm.js';
 
-    // MEASUREMENT FUNCTIONS
-    async function measurePing() {
-      const t0 = performance.now();
-      await fetch('/api/ping', { cache: 'no-store' });
-      return Math.round(performance.now() - t0);
+    // 2) pick an NDT7 server (closest to your region)
+    const SERVER = 'ndt7.iupui.mlab1.lga0t.measurementlab.net';
+
+    async function runNDT7() {
+      const tester = ndt7client({
+        server:    SERVER,
+        transport: 'http2',   // HTTP/2 transport for parallel streams
+      });
+
+      // wire up result handlers
+      tester.on('downloadProgress', info => {
+        // info.bps = bits per second so far
+        document.getElementById('download').textContent =
+          `Download: ${(info.bps / 1e6).toFixed(2)} Mbps`;
+      });
+      tester.on('uploadProgress', info => {
+        document.getElementById('upload').textContent =
+          `Upload: ${(info.bps / 1e6).toFixed(2)} Mbps`;
+      });
+      tester.on('serverInfo', info => {
+        document.getElementById('ping').textContent =
+          `Ping: ${Math.round(info.rtt)} ms`;
+      });
+
+      await tester.download();  // runs the download test
+      await tester.upload();    // then upload test
     }
 
-    async function measureDownload() {
-      const t0 = performance.now();
-      await fetch('/api/download', { cache: 'no-store' }).then(r => r.blob());
-      const secs = (performance.now() - t0) / 1000;
-      return ((DOWNLOAD_SIZE * 8) / (secs * 1024 * 1024)).toFixed(2);
-    }
-
-    async function measureUpload() {
-      const payload = new ArrayBuffer(CHUNK_SIZE);
-      const t0 = performance.now();
-      for (let i = 0; i < UPLOAD_CHUNKS; i++) {
-        await fetch('/api/upload', {
-          method: 'POST',
-          body: payload,
-          cache: 'no-store'
-        });
-      }
-      const secs = (performance.now() - t0) / 1000;
-      const totalBits = CHUNK_SIZE * UPLOAD_CHUNKS * 8;
-      return (totalBits / (secs * 1024 * 1024)).toFixed(2);
-    }
-
-    async function average(fn, runs) {
-      let sum = 0;
-      for (let i = 0; i < runs; i++) {
-        sum += parseFloat(await fn());
-      }
-      return (sum / runs).toFixed(2);
-    }
-
-    // RUN & DISPLAY
-    async function startTest() {
+    // 3) hook up the button
+    document.getElementById('startBtn').addEventListener('click', async () => {
+      // reset UI
       ['ping','download','upload'].forEach(id =>
-        document.getElementById(id).innerText =
-          `${id.charAt(0).toUpperCase()+id.slice(1)}: Testing…`
+        document.getElementById(id).textContent =
+          `${id.charAt(0).toUpperCase() + id.slice(1)}: Testing…`
       );
       try {
-        // warm-up for more consistent timing
-        await measureDownload();
-        await measureUpload();
-
-        // actual measurements
-        const [p, d, u] = await Promise.all([
-          measurePing(),
-          average(measureDownload, AVG_RUNS),
-          average(measureUpload,   AVG_RUNS)
-        ]);
-
-        document.getElementById('ping').innerText     = `Ping: ${p} ms`;
-        document.getElementById('download').innerText = `Download: ${d} Mbps`;
-        document.getElementById('upload').innerText   = `Upload: ${u} Mbps`;
-      } catch {
+        await runNDT7();
+      } catch (e) {
+        console.error(e);
         ['ping','download','upload'].forEach(id =>
-          document.getElementById(id).innerText =
-            `${id.charAt(0).toUpperCase()+id.slice(1)}: Failed`
+          document.getElementById(id).textContent =
+            `${id.charAt(0).toUpperCase() + id.slice(1)}: Failed`
         );
       }
-    }
-
-    document.getElementById('startBtn').addEventListener('click', startTest);
+    });
   </script>
 </body>
 </html>
